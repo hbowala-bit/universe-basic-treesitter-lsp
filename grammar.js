@@ -28,9 +28,9 @@ module.exports = grammar({
   word: $ => $.identifier,
 
   conflicts: $ => [
-    [$.lhs_expression, $.primary_expression],
+    [$.lhs_expression, $._primary_expression],
     [$._expression, $.lhs_expression],
-    [$.statement_label, $.primary_expression],
+    [$.statement_label, $._primary_expression],
     [$.concatenation_expression],
   ],
 
@@ -39,7 +39,7 @@ module.exports = grammar({
       $.statement_line,
       $.label_line,
       $.compiler_directive,
-      $.comment,
+      $._comment,
       $._newline,
     )),
 
@@ -50,7 +50,7 @@ module.exports = grammar({
     // =========================================
     // Comments
     // =========================================
-    comment: $ => choice(
+    _comment: $ => choice(
       $.rem_comment,
       $.star_comment,
       $.bang_comment,
@@ -67,8 +67,8 @@ module.exports = grammar({
     // =========================================
     statement_line: $ => seq(
       optional($.statement_label),
-      $.statement,
-      repeat(seq(';', choice($.statement, $.comment))),
+      $._statement,
+      repeat(seq(';', choice($._statement, $._comment))),
       $._newline,
     ),
 
@@ -93,7 +93,7 @@ module.exports = grammar({
     // =========================================
     // Statements
     // =========================================
-    statement: $ => choice(
+    _statement: $ => choice(
       // Declarations
       $.program_statement,
       $.subroutine_statement,
@@ -107,8 +107,8 @@ module.exports = grammar({
       $.assignment_statement,
       $.let_statement,
       $.mat_statement,
-      $.swap_statement,
-      $.clear_statement,
+      $._swap_statement,
+      $._clear_statement,
 
       // Control flow
       $.if_statement,
@@ -116,138 +116,138 @@ module.exports = grammar({
       $.begin_case_statement,
       $.for_statement,
       $.loop_statement,
-      $.goto_statement,
-      $.gosub_statement,
-      $.on_statement,
-      $.return_statement,
-      $.stop_statement,
-      $.abort_statement,
-      $.end_statement,
-      $.null_statement,
-      $.continue_statement,
-      $.exit_statement,
-      $.while_statement,
-      $.until_statement,
+      $._goto_statement,
+      $._gosub_statement,
+      $._on_statement,
+      $._return_statement,
+      $._stop_statement,
+      $._abort_statement,
+      $._end_statement,
+      $._null_statement,
+      $._continue_statement,
+      $._exit_statement,
+      $._while_statement,
+      $._until_statement,
 
       // Subroutine calls
-      $.call_statement,
-      $.enter_statement,
-      $.execute_statement,
-      $.perform_statement,
-      $.chain_statement,
+      $._call_statement,
+      $._enter_statement,
+      $._execute_statement,
+      $._perform_statement,
+      $._chain_statement,
 
       // I/O - File
-      $.open_statement,
-      $.close_statement,
-      $.read_statement,
-      $.write_statement,
-      $.delete_statement,
-      $.lock_statement,
-      $.unlock_statement,
-      $.release_statement,
-      $.filelock_statement,
-      $.fileunlock_statement,
-      $.select_statement,
-      $.readnext_statement,
-      $.clearselect_statement,
-      $.readlist_statement,
-      $.writelist_statement,
-      $.getlist_statement,
-      $.deletelist_statement,
-      $.bscan_statement,
-      $.clearfile_statement,
+      $._open_statement,
+      $._close_statement,
+      $._read_statement,
+      $._write_statement,
+      $._delete_statement,
+      $._lock_statement,
+      $._unlock_statement,
+      $._release_statement,
+      $._filelock_statement,
+      $._fileunlock_statement,
+      $._select_statement,
+      $._readnext_statement,
+      $._clearselect_statement,
+      $._readlist_statement,
+      $._writelist_statement,
+      $._getlist_statement,
+      $._deletelist_statement,
+      $._bscan_statement,
+      $._clearfile_statement,
 
       // I/O - Sequential
-      $.openseq_statement,
-      $.readseq_statement,
-      $.writeseq_statement,
-      $.writeseqf_statement,
-      $.readblk_statement,
-      $.writeblk_statement,
-      $.seek_statement,
-      $.closeseq_statement,
-      $.weofseq_statement,
-      $.nobuf_statement,
-      $.flush_statement,
-      $.openpath_statement,
-      $.create_statement,
-      $.status_statement,
+      $._openseq_statement,
+      $._readseq_statement,
+      $._writeseq_statement,
+      $._writeseqf_statement,
+      $._readblk_statement,
+      $._writeblk_statement,
+      $._seek_statement,
+      $._closeseq_statement,
+      $._weofseq_statement,
+      $._nobuf_statement,
+      $._flush_statement,
+      $._openpath_statement,
+      $._create_statement,
+      $._status_statement,
 
       // I/O - Print/Terminal
-      $.print_statement,
-      $.crt_statement,
-      $.display_statement,
-      $.input_statement,
-      $.heading_statement,
-      $.footing_statement,
-      $.page_statement,
-      $.printer_statement,
-      $.hush_statement,
-      $.break_statement,
-      $.echo_statement,
-      $.prompt_statement,
-      $.tabstop_statement,
-      $.tprint_statement,
-      $.errmsg_statement,
-      $.printerr_statement,
-      $.data_statement,
-      $.cleardata_statement,
-      $.inputtrap_statement,
-      $.keyedit_statement,
-      $.keytrap_statement,
-      $.keyexit_statement,
+      $._print_statement,
+      $._crt_statement,
+      $._display_statement,
+      $._input_statement,
+      $._heading_statement,
+      $._footing_statement,
+      $._page_statement,
+      $._printer_statement,
+      $._hush_statement,
+      $._break_statement,
+      $._echo_statement,
+      $._prompt_statement,
+      $._tabstop_statement,
+      $._tprint_statement,
+      $._errmsg_statement,
+      $._printerr_statement,
+      $._data_statement,
+      $._cleardata_statement,
+      $._inputtrap_statement,
+      $._keyedit_statement,
+      $._keytrap_statement,
+      $._keyexit_statement,
 
       // I/O - Tape
-      $.readt_statement,
-      $.writet_statement,
-      $.rewind_statement,
-      $.weof_statement,
+      $._readt_statement,
+      $._writet_statement,
+      $._rewind_statement,
+      $._weof_statement,
 
       // I/O - Device
-      $.opendev_statement,
-      $.get_statement,
-      $.send_statement,
-      $.ttyctl_statement,
-      $.ttyget_statement,
-      $.ttyset_statement,
+      $._opendev_statement,
+      $._get_statement,
+      $._send_statement,
+      $._ttyctl_statement,
+      $._ttyget_statement,
+      $._ttyset_statement,
 
       // Transaction
-      $.begin_transaction_statement,
-      $.end_transaction_statement,
-      $.commit_statement,
-      $.rollback_statement,
-      $.set_transaction_statement,
+      $._begin_transaction_statement,
+      $._end_transaction_statement,
+      $._commit_statement,
+      $._rollback_statement,
+      $._set_transaction_statement,
 
       // String
-      $.locate_statement,
-      $.find_statement,
-      $.findstr_statement,
-      $.ins_statement,
-      $.del_statement,
-      $.remove_statement,
-      $.convert_statement,
-      $.matparse_statement,
-      $.matbuild_statement,
+      $._locate_statement,
+      $._find_statement,
+      $._findstr_statement,
+      $._ins_statement,
+      $._del_statement,
+      $._remove_statement,
+      $._convert_statement,
+      $._matparse_statement,
+      $._matbuild_statement,
 
       // Other
-      $.debug_statement,
-      $.sleep_statement,
-      $.nap_statement,
-      $.precision_statement,
-      $.randomize_statement,
-      $.procread_statement,
-      $.procwrite_statement,
-      $.timeout_statement,
-      $.authorization_statement,
-      $.opencheck_statement,
-      $.recordlockl_statement,
-      $.recordlocku_statement,
-      $.setrem_statement,
-      $.inputclear_statement,
-      $.clearprompts_statement,
+      $._debug_statement,
+      $._sleep_statement,
+      $._nap_statement,
+      $._precision_statement,
+      $._randomize_statement,
+      $._procread_statement,
+      $._procwrite_statement,
+      $._timeout_statement,
+      $._authorization_statement,
+      $._opencheck_statement,
+      $._recordlockl_statement,
+      $._recordlocku_statement,
+      $._setrem_statement,
+      $._inputclear_statement,
+      $._clearprompts_statement,
 
       // Catch-all for function calls used as statements
-      $.expression_statement,
+      $._expression_statement,
     ),
 
     // =========================================
@@ -425,19 +425,19 @@ module.exports = grammar({
       $._expression,
     ),
 
-    swap_statement: $ => seq(
+    _swap_statement: $ => seq(
       ci('SWAP'),
       $.lhs_expression,
       ci('WITH'),
       $.lhs_expression,
     ),
 
-    clear_statement: $ => seq(
+    _clear_statement: $ => seq(
       ci('CLEAR'),
       optional(commaSep1($.identifier)),
     ),
 
-    expression_statement: $ => $._expression,
+    _expression_statement: $ => $._expression,
 
     // =========================================
     // Control Flow Statements
@@ -473,10 +473,10 @@ module.exports = grammar({
       /[eE][lL][sS][eE]/,
     )),
 
-    _then_body: $ => prec.right(seq($.statement, repeat(seq(';', $.statement)))),
-    _else_body: $ => prec.right(seq($.statement, repeat(seq(';', $.statement)))),
+    _then_body: $ => prec.right(seq($._statement, repeat(seq(';', $._statement)))),
+    _else_body: $ => prec.right(seq($._statement, repeat(seq(';', $._statement)))),
 
-    _body: $ => repeat1(choice($.statement_line, $.label_line, $.compiler_directive, $.comment, $._newline)),
+    _body: $ => repeat1(choice($.statement_line, $.label_line, $.compiler_directive, $._comment, $._newline)),
 
     begin_case_statement: $ => seq(
       ci('BEGIN'), ci('CASE'),
@@ -519,24 +519,24 @@ module.exports = grammar({
       ci('REPEAT'),
     ),
 
-    goto_statement: $ => seq(
+    _goto_statement: $ => seq(
       choice(ci('GOTO'), ci('GO'), seq(ci('GO'), ci('TO'))),
       choice($.identifier, $.numeric_label),
     ),
 
-    gosub_statement: $ => seq(
+    _gosub_statement: $ => seq(
       choice(ci('GOSUB'), seq(ci('GO'), ci('SUB'))),
       choice($.identifier, $.numeric_label),
     ),
 
-    on_statement: $ => seq(
+    _on_statement: $ => seq(
       ci('ON'),
       $._expression,
       choice(ci('GOTO'), ci('GOSUB'), seq(ci('GO'), ci('TO')), seq(ci('GO'), ci('SUB'))),
       commaSep1(choice($.identifier, $.numeric_label)),
     ),
 
-    return_statement: $ => seq(
+    _return_statement: $ => seq(
       ci('RETURN'),
       optional(choice(
         seq(ci('TO'), choice($.identifier, $.numeric_label)),
@@ -544,19 +544,19 @@ module.exports = grammar({
       )),
     ),
 
-    stop_statement: $ => seq(ci('STOP'), optional($._expression)),
-    abort_statement: $ => seq(ci('ABORT'), optional($._expression)),
-    end_statement: _ => ci('END'),
-    null_statement: _ => ci('NULL'),
-    continue_statement: _ => ci('CONTINUE'),
-    exit_statement: _ => ci('EXIT'),
-    while_statement: $ => seq(ci('WHILE'), $._expression, optional(ci('DO'))),
-    until_statement: $ => seq(ci('UNTIL'), $._expression, optional(ci('DO'))),
+    _stop_statement: $ => seq(ci('STOP'), optional($._expression)),
+    _abort_statement: $ => seq(ci('ABORT'), optional($._expression)),
+    _end_statement: _ => ci('END'),
+    _null_statement: _ => ci('NULL'),
+    _continue_statement: _ => ci('CONTINUE'),
+    _exit_statement: _ => ci('EXIT'),
+    _while_statement: $ => seq(ci('WHILE'), $._expression, optional(ci('DO'))),
+    _until_statement: $ => seq(ci('UNTIL'), $._expression, optional(ci('DO'))),
 
     // =========================================
     // Subroutine Call Statements
     // =========================================
-    call_statement: $ => seq(
+    _call_statement: $ => seq(
       ci('CALL'),
       choice(
         $.identifier,
@@ -566,12 +566,12 @@ module.exports = grammar({
       optional($.argument_list),
     ),
 
-    enter_statement: $ => seq(
+    _enter_statement: $ => seq(
       ci('ENTER'),
       $._expression,
     ),
 
-    execute_statement: $ => seq(
+    _execute_statement: $ => seq(
       ci('EXECUTE'),
       $._expression,
       repeat(choice(
@@ -583,7 +583,7 @@ module.exports = grammar({
       )),
     ),
 
-    perform_statement: $ => seq(
+    _perform_statement: $ => seq(
       ci('PERFORM'),
       $._expression,
       repeat(choice(
@@ -595,7 +595,7 @@ module.exports = grammar({
       )),
     ),
 
-    chain_statement: $ => seq(
+    _chain_statement: $ => seq(
       ci('CHAIN'),
       $._expression,
     ),
@@ -603,7 +603,7 @@ module.exports = grammar({
     // =========================================
     // File I/O Statements
     // =========================================
-    open_statement: $ => prec.right(seq(
+    _open_statement: $ => prec.right(seq(
       ci('OPEN'),
       optional(seq($._expression, ',')),
       $._expression,
@@ -613,13 +613,13 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    close_statement: $ => seq(
+    _close_statement: $ => seq(
       ci('CLOSE'),
       $._expression,
       optional($._on_error_clause),
     ),
 
-    read_statement: $ => prec.right(seq(
+    _read_statement: $ => prec.right(seq(
       choice(
         ci('READ'), ci('READL'), ci('READU'),
         ci('READV'), ci('READVL'), ci('READVU'),
@@ -633,7 +633,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    write_statement: $ => prec.right(seq(
+    _write_statement: $ => prec.right(seq(
       choice(
         ci('WRITE'), ci('WRITEU'),
         ci('WRITEV'), ci('WRITEVU'),
@@ -648,87 +648,87 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    delete_statement: $ => prec.right(seq(
+    _delete_statement: $ => prec.right(seq(
       choice(ci('DELETE'), ci('DELETEU')),
       $._expression, ',', $._expression,
       optional(seq(ci('ON'), ci('ERROR'), $._then_body)),
       optional($._then_else_clause),
     )),
 
-    lock_statement: $ => prec.right(seq(
+    _lock_statement: $ => prec.right(seq(
       ci('LOCK'),
       $._expression,
       optional($._then_else_clause),
     )),
 
-    unlock_statement: $ => seq(
+    _unlock_statement: $ => seq(
       ci('UNLOCK'),
       $._expression,
     ),
 
-    release_statement: $ => seq(
+    _release_statement: $ => seq(
       ci('RELEASE'),
       optional(seq($._expression, optional(seq(',', $._expression)))),
     ),
 
-    filelock_statement: $ => prec.right(seq(
+    _filelock_statement: $ => prec.right(seq(
       ci('FILELOCK'),
       $._expression,
       optional($._on_error_clause),
       optional($._then_else_clause),
     )),
 
-    fileunlock_statement: $ => seq(
+    _fileunlock_statement: $ => seq(
       ci('FILEUNLOCK'),
       $._expression,
       optional($._on_error_clause),
     ),
 
-    select_statement: $ => seq(
+    _select_statement: $ => seq(
       choice(ci('SELECT'), ci('SSELECT')),
       optional($._expression),
       optional(seq(ci('TO'), $._expression)),
       optional($._on_error_clause),
     ),
 
-    readnext_statement: $ => prec.right(seq(
+    _readnext_statement: $ => prec.right(seq(
       ci('READNEXT'),
       $.lhs_expression,
       optional(seq(ci('FROM'), $._expression)),
       optional($._then_else_clause),
     )),
 
-    clearselect_statement: $ => seq(
+    _clearselect_statement: $ => seq(
       ci('CLEARSELECT'),
       optional($._expression),
     ),
 
-    readlist_statement: $ => prec.right(seq(
+    _readlist_statement: $ => prec.right(seq(
       ci('READLIST'),
       $.lhs_expression,
       optional(seq(ci('FROM'), $._expression)),
       optional($._then_else_clause),
     )),
 
-    writelist_statement: $ => seq(
+    _writelist_statement: $ => seq(
       ci('WRITELIST'),
       $._expression,
       optional(seq(ci('TO'), $._expression)),
     ),
 
-    getlist_statement: $ => prec.right(seq(
+    _getlist_statement: $ => prec.right(seq(
       ci('GETLIST'),
       $._expression,
       optional(seq(ci('TO'), $._expression)),
       optional($._then_else_clause),
     )),
 
-    deletelist_statement: $ => seq(
+    _deletelist_statement: $ => seq(
       ci('DELETELIST'),
       $._expression,
     ),
 
-    bscan_statement: $ => prec.right(seq(
+    _bscan_statement: $ => prec.right(seq(
       ci('BSCAN'),
       $.lhs_expression,
       ci('FROM'),
@@ -738,7 +738,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    clearfile_statement: $ => seq(
+    _clearfile_statement: $ => seq(
       ci('CLEARFILE'),
       $._expression,
       optional($._on_error_clause),
@@ -747,7 +747,7 @@ module.exports = grammar({
     // =========================================
     // Sequential File I/O
     // =========================================
-    openseq_statement: $ => prec.right(seq(
+    _openseq_statement: $ => prec.right(seq(
       ci('OPENSEQ'),
       $._expression,
       optional(seq(',', $._expression)),
@@ -759,7 +759,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    readseq_statement: $ => prec.right(seq(
+    _readseq_statement: $ => prec.right(seq(
       ci('READSEQ'),
       $.lhs_expression,
       ci('FROM'),
@@ -768,7 +768,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    writeseq_statement: $ => prec.right(seq(
+    _writeseq_statement: $ => prec.right(seq(
       ci('WRITESEQ'),
       $._expression,
       choice(ci('TO'), ci('ON'), ci('APPEND')),
@@ -777,7 +777,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    writeseqf_statement: $ => prec.right(seq(
+    _writeseqf_statement: $ => prec.right(seq(
       ci('WRITESEQF'),
       $._expression,
       choice(ci('TO'), ci('ON'), ci('APPEND')),
@@ -786,7 +786,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    readblk_statement: $ => prec.right(seq(
+    _readblk_statement: $ => prec.right(seq(
       ci('READBLK'),
       $.lhs_expression,
       ci('FROM'),
@@ -795,7 +795,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    writeblk_statement: $ => prec.right(seq(
+    _writeblk_statement: $ => prec.right(seq(
       ci('WRITEBLK'),
       $._expression,
       choice(ci('TO'), ci('ON')),
@@ -804,7 +804,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    seek_statement: $ => prec.right(seq(
+    _seek_statement: $ => prec.right(seq(
       ci('SEEK'),
       $._expression,
       optional(seq(',', $._expression)),
@@ -813,22 +813,22 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    closeseq_statement: $ => seq(
+    _closeseq_statement: $ => seq(
       ci('CLOSESEQ'),
       $._expression,
       optional(seq(ci('ON'), ci('ERROR'), $._then_body)),
     ),
 
-    weofseq_statement: $ => seq(
+    _weofseq_statement: $ => seq(
       ci('WEOFSEQ'),
       $._expression,
       optional(seq(ci('ON'), ci('ERROR'), $._then_body)),
     ),
 
-    nobuf_statement: $ => seq(ci('NOBUF'), $._expression),
-    flush_statement: $ => seq(ci('FLUSH'), $._expression),
+    _nobuf_statement: $ => seq(ci('NOBUF'), $._expression),
+    _flush_statement: $ => seq(ci('FLUSH'), $._expression),
 
-    openpath_statement: $ => prec.right(seq(
+    _openpath_statement: $ => prec.right(seq(
       ci('OPENPATH'),
       $._expression,
       ci('TO'),
@@ -837,13 +837,13 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    create_statement: $ => prec.right(seq(
+    _create_statement: $ => prec.right(seq(
       ci('CREATE'),
       $._expression,
       optional($._then_else_clause),
     )),
 
-    status_statement: $ => seq(
+    _status_statement: $ => seq(
       ci('STATUS'),
       $._expression,
       ci('TO'),
@@ -853,14 +853,14 @@ module.exports = grammar({
     // =========================================
     // Print/Terminal I/O
     // =========================================
-    print_statement: $ => seq(
+    _print_statement: $ => seq(
       ci('PRINT'),
       optional(seq(ci('ON'), $._expression)),
       optional($.print_list),
     ),
 
-    crt_statement: $ => seq(ci('CRT'), optional($.print_list)),
-    display_statement: $ => seq(ci('DISPLAY'), optional($.print_list)),
+    _crt_statement: $ => seq(ci('CRT'), optional($.print_list)),
+    _display_statement: $ => seq(ci('DISPLAY'), optional($.print_list)),
 
     print_list: $ => seq(
       $._print_item,
@@ -869,7 +869,7 @@ module.exports = grammar({
 
     _print_item: $ => $._expression,
 
-    input_statement: $ => seq(
+    _input_statement: $ => seq(
       choice(ci('INPUT'), ci('INPUTIF'), ci('INPUTDISP'), ci('INPUTDP')),
       optional(seq('@', '(', $._expression, ',', $._expression, ')')),
       optional(seq($.lhs_expression, optional(seq(
@@ -879,55 +879,55 @@ module.exports = grammar({
       )))),
     ),
 
-    heading_statement: $ => seq(
+    _heading_statement: $ => seq(
       choice(ci('HEADING'), ci('HEADINGE'), ci('HEADINGN')),
       $._expression,
     ),
 
-    footing_statement: $ => seq(ci('FOOTING'), $._expression),
-    page_statement: $ => seq(ci('PAGE'), optional($._expression)),
+    _footing_statement: $ => seq(ci('FOOTING'), $._expression),
+    _page_statement: $ => seq(ci('PAGE'), optional($._expression)),
 
-    printer_statement: $ => seq(
+    _printer_statement: $ => seq(
       ci('PRINTER'),
       choice(ci('ON'), ci('OFF'), ci('CLOSE'), ci('RESET')),
     ),
 
-    hush_statement: $ => seq(ci('HUSH'), optional(choice(ci('ON'), ci('OFF'), $._expression))),
-    break_statement: $ => seq(ci('BREAK'), optional(choice(ci('ON'), ci('OFF'), ci('KEY'), $._expression))),
-    echo_statement: $ => seq(ci('ECHO'), optional(choice(ci('ON'), ci('OFF'), $._expression))),
+    _hush_statement: $ => seq(ci('HUSH'), optional(choice(ci('ON'), ci('OFF'), $._expression))),
+    _break_statement: $ => seq(ci('BREAK'), optional(choice(ci('ON'), ci('OFF'), ci('KEY'), $._expression))),
+    _echo_statement: $ => seq(ci('ECHO'), optional(choice(ci('ON'), ci('OFF'), $._expression))),
 
-    prompt_statement: $ => seq(ci('PROMPT'), $._expression),
-    tabstop_statement: $ => seq(ci('TABSTOP'), $._expression),
+    _prompt_statement: $ => seq(ci('PROMPT'), $._expression),
+    _tabstop_statement: $ => seq(ci('TABSTOP'), $._expression),
 
-    tprint_statement: $ => seq(
+    _tprint_statement: $ => seq(
       ci('TPRINT'),
       optional(seq(ci('ON'), $._expression)),
       optional($.print_list),
     ),
 
-    errmsg_statement: $ => seq(ci('ERRMSG'), $._expression, optional(seq(',', commaSep1($._expression)))),
-    printerr_statement: $ => seq(ci('PRINTERR'), $._expression, optional(seq(',', commaSep1($._expression)))),
+    _errmsg_statement: $ => seq(ci('ERRMSG'), $._expression, optional(seq(',', commaSep1($._expression)))),
+    _printerr_statement: $ => seq(ci('PRINTERR'), $._expression, optional(seq(',', commaSep1($._expression)))),
 
-    data_statement: $ => seq(ci('DATA'), $._expression),
-    cleardata_statement: _ => ci('CLEARDATA'),
+    _data_statement: $ => seq(ci('DATA'), $._expression),
+    _cleardata_statement: _ => ci('CLEARDATA'),
 
-    inputtrap_statement: $ => seq(ci('INPUTTRAP'), $._expression),
-    keyedit_statement: $ => seq(ci('KEYEDIT'), commaSep1($._expression)),
-    keytrap_statement: $ => seq(ci('KEYTRAP'), commaSep1($._expression)),
-    keyexit_statement: $ => seq(ci('KEYEXIT'), commaSep1($._expression)),
+    _inputtrap_statement: $ => seq(ci('INPUTTRAP'), $._expression),
+    _keyedit_statement: $ => seq(ci('KEYEDIT'), commaSep1($._expression)),
+    _keytrap_statement: $ => seq(ci('KEYTRAP'), commaSep1($._expression)),
+    _keyexit_statement: $ => seq(ci('KEYEXIT'), commaSep1($._expression)),
 
     // =========================================
     // Tape I/O
     // =========================================
-    readt_statement: $ => prec.right(seq(ci('READT'), $.lhs_expression, optional($._then_else_clause))),
-    writet_statement: $ => prec.right(seq(ci('WRITET'), $._expression, optional($._then_else_clause))),
-    rewind_statement: $ => prec.right(seq(ci('REWIND'), optional($._then_else_clause))),
-    weof_statement: $ => prec.right(seq(ci('WEOF'), optional($._then_else_clause))),
+    _readt_statement: $ => prec.right(seq(ci('READT'), $.lhs_expression, optional($._then_else_clause))),
+    _writet_statement: $ => prec.right(seq(ci('WRITET'), $._expression, optional($._then_else_clause))),
+    _rewind_statement: $ => prec.right(seq(ci('REWIND'), optional($._then_else_clause))),
+    _weof_statement: $ => prec.right(seq(ci('WEOF'), optional($._then_else_clause))),
 
     // =========================================
     // Device I/O
     // =========================================
-    opendev_statement: $ => prec.right(seq(
+    _opendev_statement: $ => prec.right(seq(
       ci('OPENDEV'),
       $._expression,
       ci('TO'),
@@ -935,7 +935,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    get_statement: $ => prec.right(seq(
+    _get_statement: $ => prec.right(seq(
       choice(ci('GET'), ci('GETX')),
       $.lhs_expression,
       optional(seq(',', $._expression)),
@@ -947,7 +947,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    send_statement: $ => prec.right(seq(
+    _send_statement: $ => prec.right(seq(
       ci('SEND'),
       $._expression,
       ci('TO'),
@@ -955,26 +955,26 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    ttyctl_statement: $ => seq(ci('TTYCTL'), $._expression, ',', $._expression),
-    ttyget_statement: $ => seq(ci('TTYGET'), $.lhs_expression, optional(seq(ci('FROM'), $._expression))),
-    ttyset_statement: $ => seq(ci('TTYSET'), $._expression, optional(seq(ci('TO'), $._expression))),
+    _ttyctl_statement: $ => seq(ci('TTYCTL'), $._expression, ',', $._expression),
+    _ttyget_statement: $ => seq(ci('TTYGET'), $.lhs_expression, optional(seq(ci('FROM'), $._expression))),
+    _ttyset_statement: $ => seq(ci('TTYSET'), $._expression, optional(seq(ci('TO'), $._expression))),
 
     // =========================================
     // Transaction Statements
     // =========================================
-    begin_transaction_statement: $ => seq(
+    _begin_transaction_statement: $ => seq(
       ci('BEGIN'), ci('TRANSACTION'),
       optional(seq(ci('ISOLATION'), ci('LEVEL'), $._expression)),
     ),
-    end_transaction_statement: _ => token(seq(
+    _end_transaction_statement: _ => token(seq(
       /[eE][nN][dD]/,
       /\s+/,
       /[tT][rR][aA][nN][sS][aA][cC][tT][iI][oO][nN]/,
     )),
-    commit_statement: _ => ci('COMMIT'),
-    rollback_statement: _ => ci('ROLLBACK'),
+    _commit_statement: _ => ci('COMMIT'),
+    _rollback_statement: _ => ci('ROLLBACK'),
 
-    set_transaction_statement: $ => seq(
+    _set_transaction_statement: $ => seq(
       ci('SET'), ci('TRANSACTION'), ci('ISOLATION'), ci('LEVEL'),
       $._expression,
     ),
@@ -982,7 +982,7 @@ module.exports = grammar({
     // =========================================
     // String Manipulation Statements
     // =========================================
-    locate_statement: $ => prec.right(seq(
+    _locate_statement: $ => prec.right(seq(
       ci('LOCATE'),
       $._expression,
       ci('IN'),
@@ -994,7 +994,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    find_statement: $ => prec.right(seq(
+    _find_statement: $ => prec.right(seq(
       ci('FIND'),
       $._expression,
       ci('IN'),
@@ -1004,7 +1004,7 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    findstr_statement: $ => prec.right(seq(
+    _findstr_statement: $ => prec.right(seq(
       ci('FINDSTR'),
       $._expression,
       ci('IN'),
@@ -1014,19 +1014,19 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
-    ins_statement: $ => seq(
+    _ins_statement: $ => seq(
       ci('INS'),
       $._expression,
       ci('BEFORE'),
       $._expression,
     ),
 
-    del_statement: $ => seq(
+    _del_statement: $ => seq(
       ci('DEL'),
       $._expression,
     ),
 
-    remove_statement: $ => seq(
+    _remove_statement: $ => seq(
       choice(ci('REMOVE'), ci('REVREMOVE')),
       $._expression,
       ci('FROM'),
@@ -1035,7 +1035,7 @@ module.exports = grammar({
       $.lhs_expression,
     ),
 
-    convert_statement: $ => seq(
+    _convert_statement: $ => seq(
       ci('CONVERT'),
       $._expression,
       ci('TO'),
@@ -1044,7 +1044,7 @@ module.exports = grammar({
       $.lhs_expression,
     ),
 
-    matparse_statement: $ => seq(
+    _matparse_statement: $ => seq(
       ci('MATPARSE'),
       $.identifier,
       ci('FROM'),
@@ -1053,7 +1053,7 @@ module.exports = grammar({
       optional(seq(ci('SETTING'), $.lhs_expression)),
     ),
 
-    matbuild_statement: $ => seq(
+    _matbuild_statement: $ => seq(
       ci('MATBUILD'),
       $.lhs_expression,
       ci('FROM'),
@@ -1065,21 +1065,21 @@ module.exports = grammar({
     // =========================================
     // Other Statements
     // =========================================
-    debug_statement: _ => ci('DEBUG'),
-    sleep_statement: $ => seq(ci('SLEEP'), optional($._expression)),
-    nap_statement: $ => seq(ci('NAP'), $._expression),
-    precision_statement: $ => seq(ci('PRECISION'), $._expression),
-    randomize_statement: $ => seq(ci('RANDOMIZE'), optional($._expression)),
-    procread_statement: $ => prec.right(seq(ci('PROCREAD'), $.lhs_expression, optional($._then_else_clause))),
-    procwrite_statement: $ => seq(ci('PROCWRITE'), $._expression),
-    timeout_statement: $ => seq(ci('TIMEOUT'), $._expression, ',', $._expression),
-    authorization_statement: $ => seq(ci('AUTHORIZATION'), $._expression),
-    opencheck_statement: $ => prec.right(seq(ci('OPENCHECK'), $._expression, ci('TO'), $.lhs_expression, optional($._then_else_clause))),
-    recordlockl_statement: $ => prec.right(seq(ci('RECORDLOCKL'), $._expression, ',', $._expression, optional($._then_else_clause))),
-    recordlocku_statement: $ => prec.right(seq(ci('RECORDLOCKU'), $._expression, ',', $._expression, optional($._then_else_clause))),
-    setrem_statement: $ => seq(ci('SETREM'), $._expression, ci('ON'), $._expression),
-    inputclear_statement: _ => ci('INPUTCLEAR'),
-    clearprompts_statement: _ => ci('CLEARPROMPTS'),
+    _debug_statement: _ => ci('DEBUG'),
+    _sleep_statement: $ => seq(ci('SLEEP'), optional($._expression)),
+    _nap_statement: $ => seq(ci('NAP'), $._expression),
+    _precision_statement: $ => seq(ci('PRECISION'), $._expression),
+    _randomize_statement: $ => seq(ci('RANDOMIZE'), optional($._expression)),
+    _procread_statement: $ => prec.right(seq(ci('PROCREAD'), $.lhs_expression, optional($._then_else_clause))),
+    _procwrite_statement: $ => seq(ci('PROCWRITE'), $._expression),
+    _timeout_statement: $ => seq(ci('TIMEOUT'), $._expression, ',', $._expression),
+    _authorization_statement: $ => seq(ci('AUTHORIZATION'), $._expression),
+    _opencheck_statement: $ => prec.right(seq(ci('OPENCHECK'), $._expression, ci('TO'), $.lhs_expression, optional($._then_else_clause))),
+    _recordlockl_statement: $ => prec.right(seq(ci('RECORDLOCKL'), $._expression, ',', $._expression, optional($._then_else_clause))),
+    _recordlocku_statement: $ => prec.right(seq(ci('RECORDLOCKU'), $._expression, ',', $._expression, optional($._then_else_clause))),
+    _setrem_statement: $ => seq(ci('SETREM'), $._expression, ci('ON'), $._expression),
+    _inputclear_statement: _ => ci('INPUTCLEAR'),
+    _clearprompts_statement: _ => ci('CLEARPROMPTS'),
 
     // =========================================
     // Clauses (reused by many statements)
@@ -1103,7 +1103,7 @@ module.exports = grammar({
     // Expressions
     // =========================================
     _expression: $ => choice(
-      $.primary_expression,
+      $._primary_expression,
       $.unary_expression,
       $.binary_expression,
       $.logical_expression,
@@ -1121,7 +1121,7 @@ module.exports = grammar({
       $.format_expression,
     ),
 
-    primary_expression: $ => choice(
+    _primary_expression: $ => choice(
       $.identifier,
       $.number,
       $.string,
