@@ -74,6 +74,17 @@ def _collect_symbols_from_statement_line(node: Node, symbols: list[Symbol]) -> N
                     range=_node_range(child),
                     selection_range=_node_range(label_node),
                 ))
+        elif child.type == "subroutine_block":
+            subroutine_stmt = _find_child(child, "subroutine_statement")
+            if subroutine_stmt:
+                name_node = _find_child(subroutine_stmt, "identifier")
+                if name_node:
+                    symbols.append(Symbol(
+                        name=name_node.text.decode(),
+                        kind=types.SymbolKind.Function,
+                        range=_node_range(child),
+                        selection_range=_node_range(name_node),
+                    ))
         elif child.type == "statement":
             _collect_symbols_from_statement(child, symbols)
 

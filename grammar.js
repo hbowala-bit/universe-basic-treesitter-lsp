@@ -20,6 +20,22 @@ const ciDirective = (prefix, keyword) => {
   return new RegExp(pattern);
 };
 
+// Case-insensitive keyword for statements that declare a name (PROGRAM foo,
+// SUBROUTINE foo, DIMENSION foo(...), etc). Because `word: $ => $.identifier`
+// is set, tree-sitter always prefers a keyword token over `identifier` in any
+// state where both are valid — so code that reuses a declaration keyword as a
+// plain variable name (e.g. `PROGRAM='X'` or `DIM(1)=`) would otherwise force
+// the declaration parse and dead-end into an ERROR node.
+//
+// Tree-sitter's regex engine has no look-around, so the keyword can't simply
+// assert "not followed by = or (". Instead, fold the mandatory separating
+// whitespace into the keyword token itself: "PROGRAM " (8 chars, incl. the
+// space) beats the bare identifier "PROGRAM" (7 chars) on longest-match when
+// a real declaration follows, but the token can't match at all when the
+// keyword is glued directly to '=' or '(' with no space — so the lexer falls
+// back to `identifier` and lets assignment/array-access rules handle it.
+const ciDecl = (keyword) => token(seq(ci(keyword), /[ \t]+/));
+
 module.exports = grammar({
   name: 'universe_basic',
 
@@ -74,6 +90,7 @@ module.exports = grammar({
 
     label_line: $ => seq(
       $.statement_label,
+      optional($._comment), 
       $._newline,
     ),
 
@@ -154,6 +171,7 @@ module.exports = grammar({
       $._writelist_statement,
       $._getlist_statement,
       $._deletelist_statement,
+      $._formlist_statement,
       $._bscan_statement,
       $._clearfile_statement,
 
@@ -349,12 +367,12 @@ module.exports = grammar({
     // Declaration Statements
     // =========================================
     program_statement: $ => seq(
-      choice(ci('PROGRAM'), ci('PROG')),
+      choice(ciDecl('PROGRAM'), ciDecl('PROG')),
       $.identifier,
     ),
 
     subroutine_statement: $ => seq(
-      ci('SUBROUTINE'),
+      ciDecl('SUBROUTINE'),
       optional(seq(
         $.identifier,
         optional($.parameter_list),
@@ -362,13 +380,13 @@ module.exports = grammar({
     ),
 
     function_statement: $ => seq(
-      ci('FUNCTION'),
+      ciDecl('FUNCTION'),
       $.identifier,
       optional($.parameter_list),
     ),
 
     deffun_statement: $ => seq(
-      ci('DEFFUN'),
+      ciDecl('DEFFUN'),
       $.identifier,
       optional($.parameter_list),
       optional(seq(ci('CALLING'), choice($.string, $.identifier))),
@@ -377,7 +395,7 @@ module.exports = grammar({
     parameter_list: $ => seq('(', commaSep($._expression), ')'),
 
     dimension_statement: $ => seq(
-      choice(ci('DIMENSION'), ci('DIM')),
+      choice(ciDecl('DIMENSION'), ciDecl('DIM')),
       commaSep1($.dim_specifier),
     ),
 
@@ -390,13 +408,13 @@ module.exports = grammar({
     ),
 
     common_statement: $ => seq(
-      ci('COMMON'),
+      ciDecl('COMMON'),
       optional(seq('/', $.identifier, '/')),
       commaSep1(choice($.dim_specifier, $.identifier)),
     ),
 
     equate_statement: $ => seq(
-      choice(ci('EQUATE'), ci('EQU')),
+      choice(ciDecl('EQUATE'), ciDecl('EQU')),
       $.identifier,
       choice(ci('TO'), ci('LIT'), ci('LITERALLY')),
       $._expression,
@@ -629,7 +647,7 @@ module.exports = grammar({
       ci('FROM'),
       $._expression, ',', $._expression,
       optional(seq(ci('ON'), ci('ERROR'), $._then_body)),
-      optional(seq(ci('LOCKED'), $._then_body)),
+      optional(seq(ci('LOCKED'), optional($._then_body))),
       optional($._then_else_clause),
     )),
 
@@ -728,6 +746,12 @@ module.exports = grammar({
       $._expression,
     ),
 
+    _formlist_statement: $ => seq(
+        ci('FORMLIST'),
+        $._expression,
+        optional(seq(ci('TO'), $._expression)),
+    ),
+
     _bscan_statement: $ => prec.right(seq(
       ci('BSCAN'),
       $.lhs_expression,
@@ -755,7 +779,7 @@ module.exports = grammar({
       $.lhs_expression,
       optional(seq(ci('USING'), $.lhs_expression)),
       optional(seq(ci('ON'), ci('ERROR'), $._then_body)),
-      optional(seq(ci('LOCKED'), $._then_body)),
+      optional(seq(ci('LOCKED'), optional($._then_body))),
       optional($._then_else_clause),
     )),
 
