@@ -88,9 +88,12 @@ module.exports = grammar({
       $._newline,
     ),
 
+    // A label may stand alone on its line, optionally followed by an empty
+    // statement separator and/or a comment — e.g. `9000 ;* Error processing`.
     label_line: $ => seq(
       $.statement_label,
-      optional($._comment), 
+      optional(';'),
+      optional($._comment),
       $._newline,
     ),
 
@@ -189,7 +192,13 @@ module.exports = grammar({
       $._flush_statement,
       $._openpath_statement,
       $._create_statement,
-      $._status_statement,
+      // NOTE: there is deliberately no `STATUS ... TO ...` statement rule.
+      // In real UniVerse code STATUS is overwhelmingly an ordinary variable
+      // receiving a function result (`STATUS = RBO.getProperty(...)`), and
+      // STATUS() is a function. Treating it as a statement keyword makes every
+      // such assignment unparseable, and no lexical trick recovers the spaced
+      // form (`STATUS = 0`) because tree-sitter's lexer cannot look ahead.
+      // See tools/parse_report.py + examples/regression_constructs.bas.
 
       // I/O - Print/Terminal
       $._print_statement,
@@ -366,28 +375,30 @@ module.exports = grammar({
     // =========================================
     // Declaration Statements
     // =========================================
+    // Declarations expose their identifier under the `name` field so that
+    // downstream consumers can read it via child_by_field_name("name").
     program_statement: $ => seq(
       choice(ciDecl('PROGRAM'), ciDecl('PROG')),
-      $.identifier,
+      field('name', $.identifier),
     ),
 
     subroutine_statement: $ => seq(
       ciDecl('SUBROUTINE'),
       optional(seq(
-        $.identifier,
+        field('name', $.identifier),
         optional($.parameter_list),
       )),
     ),
 
     function_statement: $ => seq(
       ciDecl('FUNCTION'),
-      $.identifier,
+      field('name', $.identifier),
       optional($.parameter_list),
     ),
 
     deffun_statement: $ => seq(
       ciDecl('DEFFUN'),
-      $.identifier,
+      field('name', $.identifier),
       optional($.parameter_list),
       optional(seq(ci('CALLING'), choice($.string, $.identifier))),
     ),
@@ -415,7 +426,7 @@ module.exports = grammar({
 
     equate_statement: $ => seq(
       choice(ciDecl('EQUATE'), ciDecl('EQU')),
-      $.identifier,
+      field('name', $.identifier),
       choice(ci('TO'), ci('LIT'), ci('LITERALLY')),
       $._expression,
     ),
@@ -530,11 +541,36 @@ module.exports = grammar({
       optional($.identifier),
     ),
 
-    loop_statement: $ => seq(
+    // UniVerse allows the loop head to carry an initialising statement and/or
+    // the terminating condition on the LOOP line itself:
+    //   LOOP <newline> ... REPEAT
+    //   LOOP XX+=1 UNTIL COND <newline> ... REPEAT
+    //   LOOP WHILE COND DO <newline> ... REPEAT
+    // The pre-statement is deliberately restricted to assignment forms so it
+    // cannot collide with the standalone _while_statement/_until_statement
+    // rules that remain valid inside the loop body.
+    loop_statement: $ => prec.right(seq(
       ci('LOOP'),
+      optional($._loop_control),
       $._newline,
       optional($._body),
       ci('REPEAT'),
+    )),
+
+    _loop_control: $ => choice(
+      $._loop_condition,
+      seq($._loop_pre_statement, optional($._loop_condition)),
+    ),
+
+    _loop_pre_statement: $ => choice(
+      $.assignment_statement,
+      $.let_statement,
+    ),
+
+    _loop_condition: $ => seq(
+      choice(ci('WHILE'), ci('UNTIL')),
+      $._expression,
+      optional(ci('DO')),
     ),
 
     _goto_statement: $ => seq(
@@ -645,7 +681,10 @@ module.exports = grammar({
       ),
       $.lhs_expression,
       ci('FROM'),
+      // READV/READVL/READVU take a third argument: the field (attribute)
+      // position — e.g. `READV D FROM F, KEY, 3 THEN ... END`.
       $._expression, ',', $._expression,
+      optional(seq(',', $._expression)),
       optional(seq(ci('ON'), ci('ERROR'), $._then_body)),
       optional(seq(ci('LOCKED'), optional($._then_body))),
       optional($._then_else_clause),
@@ -866,13 +905,6 @@ module.exports = grammar({
       $._expression,
       optional($._then_else_clause),
     )),
-
-    _status_statement: $ => seq(
-      ci('STATUS'),
-      $._expression,
-      ci('TO'),
-      $.lhs_expression,
-    ),
 
     // =========================================
     // Print/Terminal I/O
@@ -1229,12 +1261,17 @@ module.exports = grammar({
       ')',
     )),
 
+    // The closing '>' carries explicit lexical precedence so it beats the
+    // longer '>=' token. Without this, `A<1,2>=B` lexes as `A` `<` `1` `,` `2`
+    // `>=` `B` and the extraction is never closed — by far the most common
+    // parse failure in real UniVerse code, where subscripted assignment is
+    // written without spaces (`LOC.ARR<2,POS>=LOC.ARR<2,POS>+OON`).
     dynamic_array_access: $ => prec(10, seq(
       choice($.identifier, $.array_access),
       token.immediate('<'),
       $._expression,
       optional(seq(',', $._expression, optional(seq(',', $._expression)))),
-      '>',
+      token(prec(1, '>')),
     )),
 
     substring_expression: $ => prec(10, seq(

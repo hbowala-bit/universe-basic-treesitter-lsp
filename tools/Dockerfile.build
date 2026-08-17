@@ -1,0 +1,26 @@
+# Compile + test image for the UniVerse BASIC tree-sitter grammar.
+#
+# Deliberately based on the SAME image the NovoLingo gen_ai services run on
+# (python:3.11.9-slim-bookworm, glibc 2.36) so the .so we emit is guaranteed
+# loadable there. Building the shared object on a newer base (e.g. trixie,
+# glibc 2.41) risks producing a binary the production runtime cannot load.
+#
+# Note: `tree-sitter generate` is NOT run here — tree-sitter-cli >= 0.26
+# requires glibc >= 2.39, which bookworm does not provide. Generation happens
+# in a separate node image; see tools/build.sh.
+FROM python:3.11.9-slim-bookworm
+
+# libc6-dev is listed explicitly: with --no-install-recommends the `gcc`
+# package alone does not pull it in, and the build then fails on <stdint.h>.
+#
+# gcc-mingw-w64-x86-64 cross-compiles the Windows DLL from this same container,
+# so a native Windows toolchain is never required to produce a dev artifact.
+RUN apt-get update -qq \
+ && apt-get install -y -qq --no-install-recommends \
+      gcc libc6-dev gcc-mingw-w64-x86-64 file \
+ && rm -rf /var/lib/apt/lists/*
+
+# Pinned to match gen_ai/libs (py-tree-sitter supports grammar ABI 13-15).
+RUN pip install --no-cache-dir "tree-sitter>=0.25.2,<0.26.0"
+
+WORKDIR /work

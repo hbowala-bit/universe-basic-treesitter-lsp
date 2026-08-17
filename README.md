@@ -171,6 +171,113 @@ vim.api.nvim_create_autocmd("FileType", {
 - **Compiler Directives** — `$INCLUDE`, `$DEFINE`, `$IFDEF/$IFNDEF`, `$OPTIONS`, `$CHAIN`, `$MAP`
 - **Comments** — `*`, `!`, `REM`, `$*`
 
+### Known limitations
+
+- **`STATUS` is not a statement keyword.** In real code `STATUS` is
+  overwhelmingly an ordinary variable (`STATUS = RBO.getProperty(...)`) and
+  `STATUS()` is a function. A `STATUS ... TO ...` statement rule makes every
+  such assignment unparseable, and no lexical trick recovers the spaced form
+  because tree-sitter's lexer cannot look ahead. The variable reading wins.
+- **Two block terminators on one line** — `END<TAB>END` closing nested blocks
+  is not supported. `statement_line` requires a newline terminator; accepting a
+  sibling `END` instead needs an external scanner.
+- **`>=` vs. the closing `>` of `<...>`** is resolved by giving the closing
+  bracket explicit lexical precedence. A genuine `>=` comparison written
+  *inside* a subscript (`A<X >= Y>`) would therefore mis-lex. Not observed in
+  practice; an external scanner would remove the caveat entirely.
+
+## Packaging the grammar for the NovoLingo gen_ai chunker
+
+`gen_ai/libs/src/libs/utils/chunker` resolves a compiled grammar named
+`pickbasic` from `grammars/compiled/`. `tools/build.sh` produces that artifact
+in the exact layout the resolver expects.
+
+```bash
+./tools/build.sh                 # generate + compile + package + verify
+./tools/build.sh --skip-gen      # reuse an existing src/parser.c
+```
+
+Output:
+
+```
+dist/grammars/compiled/pickbasic.so          # ELF x86-64, glibc 2.36  (production)
+dist/grammars/compiled/pickbasic.dll         # PE32+ x86-64            (Windows dev)
+dist/grammars/compiled/pickbasic.meta.json   # { symbol, abi_version }
+```
+
+Copy `dist/grammars/compiled/` over
+`gen_ai/libs/src/libs/utils/chunker/grammars/compiled/`. No gen_ai code changes
+are required — `GrammarResolver` picks the artifact up automatically, and
+`GrammarArtifactStore` prefers the native extension per platform.
+
+The `.dll` is cross-compiled with mingw-w64 from the same Linux container, so no
+Windows toolchain is needed to produce it. It exists purely so Windows machines
+can run the tooling natively; production loads the `.so`.
+
+> A `.so` filename does not make a binary ELF. Shipping a macOS Mach-O named
+> `pickbasic.so` is what made the grammar unloadable on every non-macOS host —
+> the build now emits per-platform artifacts and verifies each with `file`.
+
+### Why the build is two-stage
+
+| Stage | Image | Reason |
+|-------|-------|--------|
+| generate `src/parser.c` | `node:22-trixie` | tree-sitter-cli ≥ 0.26 requires glibc ≥ 2.39 |
+| compile the `.so`       | `python:3.11.9-slim-bookworm` | must match the gen_ai runtime (glibc 2.36) |
+
+Compiling on the newer base yields a shared object the production image cannot
+load. Equally, a `.so` filename does not make a binary ELF — verify with `file`
+before shipping. `tools/parse_report.py` checks the magic bytes on load and
+fails with an actionable message rather than a bare `invalid ELF header`.
+
+The build aborts if the generated grammar ABI falls outside 13–15, the range
+py-tree-sitter 0.25.x accepts.
+
+## Measuring parse coverage
+
+`tools/parse_report.py` reports how much of a file the grammar actually
+understands — the developer loop for grammar changes, and a CI gate.
+
+It takes any path, so you can point it at real UniVerse source anywhere on disk
+without copying customer code into this repo.
+
+```bash
+pip install "tree-sitter>=0.25.2,<0.26.0"     # once
+./tools/build.sh                              # once, produces dist/
+
+# any local file or directory
+python tools/parse_report.py /path/to/PROGRAMS
+python tools/parse_report.py ~/code/NVLG2415V --show-errors
+
+# declarations recovered via field('name')
+python tools/parse_report.py examples --show-declarations
+
+# CI gate — non-zero exit if any file exceeds the threshold
+python tools/parse_report.py examples --max-error-pct 0
+
+# machine-readable
+python tools/parse_report.py /path/to/PROGRAMS --json > report.json
+```
+
+Files are matched by extension: `.bas`, `.b`, `.bp`, and **no extension at all**
+(the UniVerse norm). The grammar is auto-selected for the host platform;
+override with `--grammar` / `--symbol`.
+
+### If you can't run it natively
+
+macOS needs a `.dylib`, which is not cross-compiled by `tools/build.sh`. Use the
+container wrapper instead — same output, no local Python or grammar needed:
+
+```bash
+./tools/report.sh /path/to/PROGRAMS --show-errors
+./tools/report.sh ~/code/NVLG2415V --max-error-pct 5
+```
+
+It mounts the target read-only and runs the report inside the build image.
+
+`examples/regression_constructs.bas` is the guard for the constructs that
+previously failed; it must stay at `--max-error-pct 0`.
+
 ## Project Structure
 
 ```
@@ -195,7 +302,14 @@ editors/vscode/             # VS Code extension
   language-configuration.json
   .vscode/launch.json       # F5 Extension Development Host config
 build/                      # Compiled grammar shared library (gitignored)
+tools/                      # Grammar packaging + parse-coverage tooling
+  build.sh                  # Two-stage build -> dist/grammars/compiled/
+  Dockerfile.build          # Compile/test image, pinned to the gen_ai runtime
+  parse_report.py           # Parse-coverage report / CI gate
+  report.sh                 # Container wrapper for parse_report.py
+dist/grammars/compiled/     # Packaged artifacts (.so for prod, .dll for Windows dev)
 examples/                   # Example UniVerse BASIC source files
+  regression_constructs.bas # Guard for previously-failing constructs
 reference/                  # Language reference documentation
 src/                        # Generated parser (auto-generated, gitignored)
 ```
