@@ -158,6 +158,7 @@ module.exports = grammar({
 
       // I/O - File
       $._open_statement,
+      $._osread_statement,
       $._close_statement,
       $._read_statement,
       $._write_statement,
@@ -168,6 +169,7 @@ module.exports = grammar({
       $._filelock_statement,
       $._fileunlock_statement,
       $._select_statement,
+      $._selectindex_statement,
       $._readnext_statement,
       $._clearselect_statement,
       $._readlist_statement,
@@ -247,6 +249,7 @@ module.exports = grammar({
 
       // String
       $._locate_statement,
+      $._locate_call_statement,
       $._find_statement,
       $._findstr_statement,
       $._ins_statement,
@@ -479,6 +482,21 @@ module.exports = grammar({
       optional(seq(ci('ELSE'), optional($._else_body))),
     )),
 
+    // `_block_head_break` (repeat1 of blank-lines-or-comment-lines) is ONLY safe where
+    // nothing else after it can also start with a bare newline/comment — otherwise the
+    // parser can't tell which rule "owns" a run of blank/comment lines (a real
+    // generate-time conflict, caught trying this more broadly). `_body` already
+    // tolerates leading blank lines and comments itself (two of its choices are a bare
+    // $._newline and $._comment), so every construct that follows its header newline
+    // with `optional($._body)` (if_block, case_clause, for_statement, loop_statement,
+    // _then_else_clause) needs no change here. `begin_case_statement` is the one
+    // exception: nothing but `repeat($.case_clause)` follows its header newline, and
+    // `case_clause` cannot start with a bare blank/comment line, so it needs this fix
+    // directly. Confirmed against real code: a blank line, or a `*comment` line, between
+    // `BEGIN CASE` and its first `CASE` clause (NVLG2415E and others, logistic-ru-poc
+    // corpus — one of the largest recurring error clusters in a 165-file scan).
+    _block_head_break: $ => repeat1(choice($._newline, seq($._comment, $._newline))),
+
     if_block: $ => prec.right(1, seq(
       ci('IF'),
       field('condition', $._expression),
@@ -502,14 +520,17 @@ module.exports = grammar({
       /[eE][lL][sS][eE]/,
     )),
 
-    _then_body: $ => prec.right(seq($._statement, repeat(seq(';', $._statement)))),
-    _else_body: $ => prec.right(seq($._statement, repeat(seq(';', $._statement)))),
+    // Trailing `;* comment` after the last statement — the same idiom fixed on
+    // label_line/case_clause (e.g. `IF W="" THEN W="35"   ;* Internal CH4`). Confirmed
+    // common in real code (logistic-ru-poc corpus, NVLG1608 and others).
+    _then_body: $ => prec.right(seq($._statement, repeat(seq(';', $._statement)), optional(seq(';', $._comment)))),
+    _else_body: $ => prec.right(seq($._statement, repeat(seq(';', $._statement)), optional(seq(';', $._comment)))),
 
     _body: $ => repeat1(choice($.statement_line, $.label_line, $.compiler_directive, $._comment, $._newline)),
 
     begin_case_statement: $ => seq(
       ci('BEGIN'), ci('CASE'),
-      $._newline,
+      $._block_head_break,
       repeat($.case_clause),
       $._end_case,
     ),
@@ -520,9 +541,15 @@ module.exports = grammar({
       /[cC][aA][sS][eE]/,
     )),
 
+    // The CASE line can carry trailing `;`-joined statements and/or a `;* comment`,
+    // exactly like `statement_line` does (e.g. `CASE TYPE = 1  ;* Service Change Header`,
+    // `CASE 1; MSGNO=999; MSG=PROGRAM:' [':ERR:']'`). Confirmed extremely common in real
+    // code (logistic-ru-poc corpus) — the single largest error cluster found in a
+    // 165-file scan (~200 leaf ERROR nodes with a bare `;` tail).
     case_clause: $ => prec.right(seq(
       ci('CASE'),
       $._expression,
+      repeat(seq(';', choice($._statement, $._comment))),
       $._newline,
       optional($._body),
     )),
@@ -562,9 +589,13 @@ module.exports = grammar({
       seq($._loop_pre_statement, optional($._loop_condition)),
     ),
 
+    // `LOOP READNEXT key ELSE EXIT` — the classic "iterate an active select list"
+    // idiom, a third loop-head form alongside the pre-statement/condition forms above.
+    // Confirmed common in real code (logistic-ru-poc corpus, NVLG1787 and others).
     _loop_pre_statement: $ => choice(
       $.assignment_statement,
       $.let_statement,
+      $._readnext_statement,
     ),
 
     _loop_condition: $ => seq(
@@ -637,8 +668,11 @@ module.exports = grammar({
       )),
     ),
 
+    // PCPERFORM (perform on the client/PC side) takes the same clause set as PERFORM.
+    // Confirmed against real code (logistic-ru-poc corpus, SEND.SUBCON) — was previously
+    // entirely unhandled.
     _perform_statement: $ => seq(
-      ci('PERFORM'),
+      choice(ci('PERFORM'), ci('PCPERFORM')),
       $._expression,
       repeat(choice(
         seq(ci('CAPTURING'), $.identifier),
@@ -667,6 +701,18 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
+    // OSREAD reads an OS-level (non-UniVerse-file) file into a variable:
+    //   OSREAD var FROM '/path/to/file' THEN ... [ELSE ... END] END
+    // Confirmed against real code (CHECK.APPLICATION, logistic-ru-poc corpus) — was
+    // previously entirely unhandled, corrupting the surrounding IF/FOR/NEXT structure.
+    _osread_statement: $ => prec.right(seq(
+      ci('OSREAD'),
+      $.lhs_expression,
+      ci('FROM'),
+      $._expression,
+      optional($._then_else_clause),
+    )),
+
     _close_statement: $ => seq(
       ci('CLOSE'),
       $._expression,
@@ -686,10 +732,14 @@ module.exports = grammar({
       $._expression, ',', $._expression,
       optional(seq(',', $._expression)),
       optional(seq(ci('ON'), ci('ERROR'), $._then_body)),
-      optional(seq(ci('LOCKED'), optional($._then_body))),
+      optional($._locked_clause),
       optional($._then_else_clause),
     )),
 
+    // WRITEV/WRITEVU take an optional third argument (the field/attribute position),
+    // mirroring _read_statement's READV/READVL/READVU third argument — confirmed common
+    // in real code (`WRITEV "" TO F$DEPOT, L$DEPOT<XX>, 71`, logistic-ru-poc corpus);
+    // this was previously an asymmetric fix (READV got it, WRITEV didn't).
     _write_statement: $ => prec.right(seq(
       choice(
         ci('WRITE'), ci('WRITEU'),
@@ -700,6 +750,7 @@ module.exports = grammar({
       optional(seq(
         choice(ci('TO'), ci('ON')),
         $._expression, ',', $._expression,
+        optional(seq(',', $._expression)),
       )),
       optional(seq(ci('ON'), ci('ERROR'), $._then_body)),
       optional($._then_else_clause),
@@ -746,6 +797,18 @@ module.exports = grammar({
       optional($._expression),
       optional(seq(ci('TO'), $._expression)),
       optional($._on_error_clause),
+    ),
+
+    // SELECTINDEX field, key FROM FILEVAR(...) — builds a select list from an indexed
+    // file. Confirmed against real code (logistic-ru-poc corpus, NVLG2614/NVLG2804) —
+    // was previously entirely unhandled. No optional THEN/ELSE: not observed in any real
+    // occurrence, and adding it speculatively created a real dangling-else-style
+    // ambiguity with the enclosing IF at generate time.
+    _selectindex_statement: $ => seq(
+      ci('SELECTINDEX'),
+      $._expression, ',', $._expression,
+      ci('FROM'),
+      $._expression,
     ),
 
     _readnext_statement: $ => prec.right(seq(
@@ -818,7 +881,7 @@ module.exports = grammar({
       $.lhs_expression,
       optional(seq(ci('USING'), $.lhs_expression)),
       optional(seq(ci('ON'), ci('ERROR'), $._then_body)),
-      optional(seq(ci('LOCKED'), optional($._then_body))),
+      optional($._locked_clause),
       optional($._then_else_clause),
     )),
 
@@ -1050,6 +1113,20 @@ module.exports = grammar({
       optional($._then_else_clause),
     )),
 
+    // Function-call-style LOCATE: LOCATE(value, array[, start]; result_var) THEN/ELSE —
+    // a completely different shape from the IN/SETTING form above (no keywords at all,
+    // the result variable is the last, semicolon-separated argument inside the parens).
+    // Confirmed against real code (logistic-ru-poc corpus, NTF.ENV.WATER.BREACH.V).
+    _locate_call_statement: $ => prec.right(seq(
+      ci('LOCATE'),
+      token.immediate('('),
+      commaSep1($._expression),
+      ';',
+      $.lhs_expression,
+      ')',
+      optional($._then_else_clause),
+    )),
+
     _find_statement: $ => prec.right(seq(
       ci('FIND'),
       $._expression,
@@ -1154,6 +1231,19 @@ module.exports = grammar({
     )),
 
     _on_error_clause: $ => seq(ci('ON'), ci('ERROR'), $._then_body),
+
+    // LOCKED can carry either a single-line body (`LOCKED stmt1; stmt2`) or a full
+    // multi-line block closed with its own END, independent of any trailing THEN/ELSE
+    // that follows the whole statement (`READU ... LOCKED \n body END THEN \n body END`).
+    // Confirmed common in real code (logistic-ru-poc corpus, NVLG3734/NVLG3346) — the
+    // multi-line form was previously entirely unhandled.
+    _locked_clause: $ => prec.right(2, seq(
+      ci('LOCKED'),
+      choice(
+        seq($._newline, optional($._body), prec(2, ci('END'))),
+        optional($._then_body),
+      ),
+    )),
 
     // =========================================
     // Expressions
@@ -1274,8 +1364,11 @@ module.exports = grammar({
       token(prec(1, '>')),
     )),
 
+    // `function_call` is a valid substring base too — confirmed against real code
+    // (logistic-ru-poc corpus, NVLG2415B): `FIELD(ACCDATE,'/',3)[3,2]` applies a
+    // substring extraction directly to a function call's return value.
     substring_expression: $ => prec(10, seq(
-      choice($.identifier, $.array_access, $.dynamic_array_access),
+      choice($.identifier, $.array_access, $.dynamic_array_access, $.function_call),
       '[',
       $._expression,
       ',',
